@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-echo --------------------------------
+echo --------------------------------------------
 
 rem Query the user-specific Path variable from the registry and store it in userPath
 for /f "tokens=2*" %%i in ('reg query "HKCU\Environment" /v Path 2^>nul') do (
@@ -44,7 +44,7 @@ set "userPath=%userPath%;%filteredPath%"
 rem Set the new userPath variable in the registry
 setx Path "%userPath%"
 
-echo -------------------------
+echo --------------------------------------------
 
 rem End the local environment changes
 endlocal
