@@ -63,6 +63,7 @@ int main(const int argc, const char* argv[]) {
     error = GetLastError();
     if (error != 0) {
         std::cerr << "Failed to allocate memory: " << error << std::endl;
+        CloseHandle(hProcess);
         return 1;
     }
 
@@ -70,6 +71,7 @@ int main(const int argc, const char* argv[]) {
     error = GetLastError();
     if (error != 0) {
         std::cerr << "Failed to write memory: " << error << std::endl;
+        CloseHandle(hProcess);
         return 1;
     }
 
@@ -77,6 +79,7 @@ int main(const int argc, const char* argv[]) {
     error = GetLastError();
     if (error != 0) {
         std::cerr << "Failed to create remote thread: " << error << std::endl;
+        CloseHandle(hProcess);
         return 1;
     }
 
