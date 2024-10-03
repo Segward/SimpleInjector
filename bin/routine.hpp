@@ -9,7 +9,7 @@ class Routine {
 public:
 
     Routine(const char* processName, const char* dllPath);
-    BOOL CreateRemoteThreadInject();
+    BOOL CreateRemoteThreadInject(); 
     BOOL NtCreateThreadExInject();
     BOOL HijackRemoteThreadInject();
     BOOL SetWindowsHookExInject();

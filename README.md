@@ -7,6 +7,7 @@
 ### Usage:
 * For 64-bit targets: ` injector <process name> <dll path> `
 * For 32-bit targets: ` injector86 <process name> <dll path> `
+* Your dll architecture must match the targets architecture
 
 ### Terminal codes used in Windows PowerShell:
 ```(shell)
