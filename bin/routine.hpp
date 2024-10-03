@@ -153,27 +153,117 @@ BOOL Routine::HijackRemoteThreadInject() {
     #endif
 
     BOOL fetched = GetThreadContext(hThread, &context);
-    if (!fetched) {
-        std::cerr << "Failed to get thread context" << std::endl;
+    this->lastError = GetLastError();
+    if (this->lastError != 0) {
+        std::cerr << "Failed to get thread context: " << this->lastError << std::endl;
         CloseHandle(hThread);
         return FALSE;
     }
 
+    DWORD oldEip;
+    DWORD64 oldRip;
+    unsigned char shellcode[4096];
+
     #ifdef _M_AMD64
-        std::cout << "64-bit architecture RIP: " << std::hex << context.Rip << std::endl;
+        oldRip = context.Rip;
+
+        unsigned char replacement[] = {
+            0x50,                                           // push rax
+            0x51,                                           // push rcx
+            0x52,                                           // push rdx
+            0x53,                                           // push rbx
+            0x55,                                           // push rbp
+            0x56,                                           // push rsi
+            0x57,                                           // push rdi
+            0x9C,                                           // pushfq
+            0x68, 0x00, 0x00, 0x00, 0x00,                   // push low 32 bits of oldRip
+            0xC7, 0x44, 0x24, 0x04, 0x00, 0x00, 0x00, 0x00, // mov [rsp+4], high 32 bits of oldRip
+            0x9D,                                           // popfq
+            0x5F,                                           // pop rdi
+            0x5E,                                           // pop rsi
+            0x5D,                                           // pop rbp
+            0x5B,                                           // pop rbx
+            0x5A,                                           // pop rdx
+            0x59,                                           // pop rcx
+            0x58,                                           // pop rax
+            0xC3                                            // ret
+        };
+
+         *((DWORD*)(replacement + 9)) = (DWORD)(oldRip & 0xFFFFFFFF); // low 32 bits
+        *((DWORD*)(replacement + 17)) = (DWORD)((oldRip >> 32) & 0xFFFFFFFF); // high 32 bits
+
+        memcpy(shellcode, replacement, sizeof(replacement));
+
     #elif _M_IX86
-        std::cout << "32-bit architecture EIP: " << std::hex << context.Eip << std::endl;
+        oldEip = context.Eip;
+
+        unsigned char replacement[] = {
+            0x83, 0xEC, 0x04,                               // sub esp, 0x04
+            0xC7, 0x04, 0x24, 0x00, 0x00, 0x00, 0x00,       // mov [esp], oldEip
+            0x50, 0x51, 0x52,                               // push eax, ecx, edx
+            0x9C,                                           // pushfd
+            0x9D,                                           // popfd
+            0x5A, 0x59, 0x58,                               // pop edx, ecx, eax
+            0xC3                                            // ret
+        };
+
+        *((DWORD*)(replacement + 6)) = oldEip; // oldEip
+
+        memcpy(shellcode, replacement, sizeof(replacement));
+
     #endif
 
-    SuspendThread(hThread);
-    Sleep(1000);
-    ResumeThread(hThread);
-
-    if (hThread)
+    PVOID location = VirtualAllocEx(hProcess, 0, sizeof(shellcode), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    this->lastError = GetLastError();
+    if (this->lastError != 0) {
+        std::cerr << "Failed to allocate memory: " << this->lastError << std::endl;
         CloseHandle(hThread);
-
-    if (hProcess)
         CloseHandle(hProcess);
+        return FALSE;
+    }
+
+    DWORD oldProtect;
+    BOOL isProtected = VirtualProtectEx(hProcess, location, sizeof(shellcode), PAGE_EXECUTE_READWRITE, &oldProtect);
+    this->lastError = GetLastError();
+    if (!isProtected) {
+        std::cerr << "Failed to set memory protection: " << this->lastError << std::endl;
+        CloseHandle(hThread);
+        CloseHandle(hProcess);
+        return FALSE;
+    }
+
+    BOOL written = WriteProcessMemory(hProcess, location, shellcode, sizeof(shellcode), 0);
+    this->lastError = GetLastError();
+    if (this->lastError != 0) {
+        std::cerr << "Failed to write memory: " << this->lastError << std::endl;
+        CloseHandle(hThread);
+        CloseHandle(hProcess);
+        return FALSE;
+    }
+
+    SuspendThread(hThread);
+
+    BOOL set = SetThreadContext(hThread, &context);
+    this->lastError = GetLastError();
+    if (this->lastError != 0) {
+        std::cerr << "Failed to set thread context: " << this->lastError << std::endl;
+        ResumeThread(hThread);
+        CloseHandle(hThread);
+        CloseHandle(hProcess);
+        return FALSE;
+    }
+
+    BOOL resume = ResumeThread(hThread);
+    this->lastError = GetLastError();
+    if (this->lastError != 0) {
+        std::cerr << "Failed to resume thread: " << this->lastError << std::endl;
+        CloseHandle(hThread);
+        CloseHandle(hProcess);
+        return FALSE;
+    }
+
+    CloseHandle(hThread);
+    CloseHandle(hProcess);
 
     return TRUE;
 }
