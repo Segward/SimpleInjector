@@ -66,9 +66,9 @@ Routine::Routine(const char* processName, const char* dllPath) {
     }
 
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to open process: " << this->lastError << std::endl;
+    lastError = GetLastError();
+    if (lastError != 0) {
+        std::cerr << "Failed to open process: " << lastError << std::endl;
         if (hProcess)
             CloseHandle(hProcess);
         return;
@@ -79,25 +79,34 @@ Routine::Routine(const char* processName, const char* dllPath) {
 
 BOOL Routine::CreateRemoteThreadInject() {
     PVOID location = VirtualAllocEx(hProcess, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to allocate memory: " << this->lastError << std::endl;
+    lastError = GetLastError();
+    if (lastError != 0) {
+        std::cerr << "Failed to allocate memory: " << lastError << std::endl;
+        CloseHandle(hProcess);
+        return FALSE;
+    }
+
+    DWORD oldProtect;
+    BOOL isProtected = VirtualProtectEx(hProcess, location, strlen(dllPath) + 1, PAGE_EXECUTE_READWRITE, &oldProtect);
+    lastError = GetLastError();
+    if (!isProtected) {
+        std::cerr << "Failed to set memory protection: " << lastError << std::endl;
         CloseHandle(hProcess);
         return FALSE;
     }
 
     BOOL written = WriteProcessMemory(hProcess, location, dllPath, strlen(dllPath) + 1, 0);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to write memory: " << this->lastError << std::endl;
+    lastError = GetLastError();
+    if (lastError != 0) {
+        std::cerr << "Failed to write memory: " << lastError << std::endl;
         CloseHandle(hProcess);
         return FALSE;
     }
 
     HANDLE hThread = CreateRemoteThread(hProcess, 0, 0, (LPTHREAD_START_ROUTINE)LoadLibraryA, location, 0, 0);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to create remote thread: " << this->lastError << std::endl;
+    lastError = GetLastError();
+    if (lastError != 0) {
+        std::cerr << "Failed to create remote thread: " << lastError << std::endl;
         CloseHandle(hProcess);
         return FALSE;
     }
@@ -138,9 +147,9 @@ BOOL Routine::HijackRemoteThreadInject() {
         return FALSE;
     }
 
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to get thread context: " << this->lastError << std::endl;
+    lastError = GetLastError();
+    if (lastError != 0) {
+        std::cerr << "Failed to get thread context: " << lastError << std::endl;
         CloseHandle(hProcess);
         return FALSE;
     }
@@ -153,9 +162,9 @@ BOOL Routine::HijackRemoteThreadInject() {
     #endif
 
     BOOL fetched = GetThreadContext(hThread, &context);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to get thread context: " << this->lastError << std::endl;
+    lastError = GetLastError();
+    if (lastError != 0) {
+        std::cerr << "Failed to get thread context: " << lastError << std::endl;
         CloseHandle(hThread);
         return FALSE;
     }
@@ -194,9 +203,9 @@ BOOL Routine::HijackRemoteThreadInject() {
     #endif
 
     PVOID location = VirtualAllocEx(hProcess, 0, sizeof(shellcode), MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to allocate memory: " << this->lastError << std::endl;
+    lastError = GetLastError();
+    if (lastError != 0) {
+        std::cerr << "Failed to allocate memory: " << lastError << std::endl;
         CloseHandle(hThread);
         CloseHandle(hProcess);
         return FALSE;
@@ -204,18 +213,18 @@ BOOL Routine::HijackRemoteThreadInject() {
 
     DWORD oldProtect;
     BOOL isProtected = VirtualProtectEx(hProcess, location, sizeof(shellcode), PAGE_EXECUTE_READWRITE, &oldProtect);
-    this->lastError = GetLastError();
+    lastError = GetLastError();
     if (!isProtected) {
-        std::cerr << "Failed to set memory protection: " << this->lastError << std::endl;
+        std::cerr << "Failed to set memory protection: " << lastError << std::endl;
         CloseHandle(hThread);
         CloseHandle(hProcess);
         return FALSE;
     }
 
     BOOL written = WriteProcessMemory(hProcess, location, shellcode, sizeof(shellcode), 0);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to write memory: " << this->lastError << std::endl;
+    lastError = GetLastError();
+    if (lastError != 0) {
+        std::cerr << "Failed to write memory: " << lastError << std::endl;
         CloseHandle(hThread);
         CloseHandle(hProcess);
         return FALSE;
@@ -224,9 +233,9 @@ BOOL Routine::HijackRemoteThreadInject() {
     SuspendThread(hThread);
 
     BOOL set = SetThreadContext(hThread, &context);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to set thread context: " << this->lastError << std::endl;
+    lastError = GetLastError();
+    if (lastError != 0) {
+        std::cerr << "Failed to set thread context: " << lastError << std::endl;
         ResumeThread(hThread);
         CloseHandle(hThread);
         CloseHandle(hProcess);
@@ -234,9 +243,9 @@ BOOL Routine::HijackRemoteThreadInject() {
     }
 
     BOOL resume = ResumeThread(hThread);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to resume thread: " << this->lastError << std::endl;
+    lastError = GetLastError();
+    if (lastError != 0) {
+        std::cerr << "Failed to resume thread: " << lastError << std::endl;
         CloseHandle(hThread);
         CloseHandle(hProcess);
         return FALSE;
