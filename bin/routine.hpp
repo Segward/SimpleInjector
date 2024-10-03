@@ -165,39 +165,15 @@ BOOL Routine::HijackRemoteThreadInject() {
         std::cout << "32-bit architecture EIP: " << std::hex << context.Eip << std::endl;
     #endif
 
-    PVOID location = VirtualAllocEx(hProcess, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to allocate memory: " << this->lastError << std::endl;
-        CloseHandle(hProcess);
-        return FALSE;
-    }
-
-    BOOL written = WriteProcessMemory(hProcess, location, dllPath, strlen(dllPath) + 1, 0);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to write memory: " << this->lastError << std::endl;
-        VirtualFreeEx(hProcess, location, 0, MEM_RELEASE);
-        CloseHandle(hProcess);
-        return FALSE;
-    }
-
-    #ifdef _M_AMD64
-        // context.Rip = (DWORD64)LoadLibraryA;
-        // context.Rcx = (DWORD64)location;
-    #elif _M_IX86
-        // context.Eip = (DWORD)LoadLibraryA;
-        // context.Ebx = (DWORD)location;
-    #endif
+    SuspendThread(hThread);
+    Sleep(1000);
+    ResumeThread(hThread);
 
     if (hThread)
         CloseHandle(hThread);
 
     if (hProcess)
         CloseHandle(hProcess);
-    
-    if (location)
-        VirtualFreeEx(hProcess, location, 0, MEM_RELEASE);
 
     return TRUE;
 }
