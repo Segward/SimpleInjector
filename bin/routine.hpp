@@ -147,7 +147,7 @@ BOOL Routine::HijackRemoteThreadInject() {
 
     CONTEXT context = { 0 };
     #ifdef _M_AMD64
-        context.ContextFlags = CONTEXT_ARM64_FULL;
+        context.ContextFlags = CONTEXT_FULL;
     #elif _M_IX86
         context.ContextFlags = WOW64_CONTEXT_FULL;
     #endif
