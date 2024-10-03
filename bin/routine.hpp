@@ -10,7 +10,10 @@ public:
 
     Routine(const char* processName, const char* dllPath);
     BOOL CreateRemoteThreadInject();
+    BOOL NtCreateThreadExInject();
     BOOL HijackRemoteThreadInject();
+    BOOL SetWindowsHookExInject();
+    BOOL QueueUserAPCInject();
 
 private:
 
@@ -135,8 +138,6 @@ BOOL Routine::HijackRemoteThreadInject() {
         return FALSE;
     }
 
-    LPCONTEXT context;
-    BOOL fetched = GetThreadContext(hThread, context);
     this->lastError = GetLastError();
     if (this->lastError != 0) {
         std::cerr << "Failed to get thread context: " << this->lastError << std::endl;
@@ -144,43 +145,28 @@ BOOL Routine::HijackRemoteThreadInject() {
         return FALSE;
     }
 
-    context->ContextFlags = CONTEXT_FULL;
-    
-    #ifdef _WIN64
-        if (context->Rip == 0) {
-            CloseHandle(hProcess);
-            std::cerr << "RIP is 0" << std::endl;
-            return FALSE;
-        }
-    #elif _WIN32 
-        if (context->Eip == 0) {
-            CloseHandle(hProcess);
-            std::cerr << "EIP is 0" << std::endl;
-            return FALSE;
-        }
+    CONTEXT context = { 0 };
+    #ifdef _M_AMD64
+        context.ContextFlags = CONTEXT_ARM64_FULL;
+    #elif _M_IX86
+        context.ContextFlags = WOW64_CONTEXT_FULL;
     #endif
 
-    PVOID location = VirtualAllocEx(hProcess, 0, MAX_PATH, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to allocate memory: " << this->lastError << std::endl;
-        CloseHandle(hProcess);
+    BOOL fetched = GetThreadContext(hThread, &context);
+    if (!fetched) {
+        std::cerr << "Failed to get thread context" << std::endl;
+        CloseHandle(hThread);
         return FALSE;
     }
 
-    BOOL written = WriteProcessMemory(hProcess, location, dllPath, strlen(dllPath) + 1, 0);
-    this->lastError = GetLastError();
-    if (this->lastError != 0) {
-        std::cerr << "Failed to write memory: " << this->lastError << std::endl;
-        VirtualFreeEx(hProcess, location, 0, MEM_RELEASE);
-        CloseHandle(hProcess);
-        return FALSE;
-    }
+    #ifdef _M_AMD64
+        std::cout << "64-bit architecture RIP: " << std::hex << context.Rip << std::endl;
+    #elif _M_IX86
+        std::cout << "32-bit architecture EIP: " << std::hex << context.Eip << std::endl;
+    #endif
 
-    if (hProcess)
-        CloseHandle(hProcess);
+    if (hThread)
+        CloseHandle(hThread);
 
-    
-    
     return TRUE;
 }
