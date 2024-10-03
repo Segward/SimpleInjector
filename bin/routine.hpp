@@ -176,7 +176,7 @@ BOOL Routine::HijackRemoteThreadInject() {
     #ifdef _M_AMD64
         oldRip = context.Rip;
 
-        unsigned char replacement[] = {
+        unsigned char replacement[4096] = {
             0x68, 0x00, 0x00, 0x00, 0x00,                   // push low 32 bits of oldRip
             0xC7, 0x44, 0x24, 0x04, 0x00, 0x00, 0x00, 0x00, // mov [rsp+4], high 32 bits of oldRip
             0xC3                                            // ret
@@ -190,7 +190,7 @@ BOOL Routine::HijackRemoteThreadInject() {
     #elif _M_IX86
         oldEip = context.Eip;
 
-        unsigned char replacement[] = {
+        unsigned char replacement[4096] = {
             0x83, 0xEC, 0x04,                               // sub esp, 0x04
             0xC7, 0x04, 0x24, 0x00, 0x00, 0x00, 0x00,       // mov [esp], oldEip
             0xC3                                            // ret
