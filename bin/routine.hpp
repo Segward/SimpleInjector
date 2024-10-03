@@ -168,29 +168,13 @@ BOOL Routine::HijackRemoteThreadInject() {
         oldRip = context.Rip;
 
         unsigned char replacement[] = {
-            0x50,                                           // push rax
-            0x51,                                           // push rcx
-            0x52,                                           // push rdx
-            0x53,                                           // push rbx
-            0x55,                                           // push rbp
-            0x56,                                           // push rsi
-            0x57,                                           // push rdi
-            0x9C,                                           // pushfq
             0x68, 0x00, 0x00, 0x00, 0x00,                   // push low 32 bits of oldRip
             0xC7, 0x44, 0x24, 0x04, 0x00, 0x00, 0x00, 0x00, // mov [rsp+4], high 32 bits of oldRip
-            0x9D,                                           // popfq
-            0x5F,                                           // pop rdi
-            0x5E,                                           // pop rsi
-            0x5D,                                           // pop rbp
-            0x5B,                                           // pop rbx
-            0x5A,                                           // pop rdx
-            0x59,                                           // pop rcx
-            0x58,                                           // pop rax
             0xC3                                            // ret
         };
 
-         *((DWORD*)(replacement + 9)) = (DWORD)(oldRip & 0xFFFFFFFF); // low 32 bits
-        *((DWORD*)(replacement + 17)) = (DWORD)((oldRip >> 32) & 0xFFFFFFFF); // high 32 bits
+        *((DWORD*)(replacement + 1)) = (DWORD)(oldRip & 0xFFFFFFFF); // low 32 bits
+        *((DWORD*)(replacement + 9)) = (DWORD)((oldRip >> 32) & 0xFFFFFFFF); // high 32 bits
 
         memcpy(shellcode, replacement, sizeof(replacement));
 
@@ -200,10 +184,6 @@ BOOL Routine::HijackRemoteThreadInject() {
         unsigned char replacement[] = {
             0x83, 0xEC, 0x04,                               // sub esp, 0x04
             0xC7, 0x04, 0x24, 0x00, 0x00, 0x00, 0x00,       // mov [esp], oldEip
-            0x50, 0x51, 0x52,                               // push eax, ecx, edx
-            0x9C,                                           // pushfd
-            0x9D,                                           // popfd
-            0x5A, 0x59, 0x58,                               // pop edx, ecx, eax
             0xC3                                            // ret
         };
 

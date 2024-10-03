@@ -16,6 +16,7 @@ int main(const int argc, const char* argv[]) {
     const char* dllPath = argv[2];
 
     Routine routine(processName, dllPath);
+    
     if (routine.CreateRemoteThreadInject()) {
         std::cout << "Injection successful" << std::endl;
     } else {
