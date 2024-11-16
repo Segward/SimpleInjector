@@ -1,7 +1,7 @@
 # Segward's injector
 
 ### Installing steps:
-* Git clone this repository `git clone https://github.com/Segward/injector.git `
+* Git clone this repository `git clone https://github.com/Segward/SimpleInjector.git `
 * Run the setup batch file ` .\setup `
 
 ### Usage:
@@ -11,6 +11,6 @@
 
 ### Terminal codes used in Windows PowerShell:
 ```(shell)
-git clone https://github.com/Segward/injector.git
+git clone https://github.com/Segward/SimpleInjector.git
 .\setup
 ```
