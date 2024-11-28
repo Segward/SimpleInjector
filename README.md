@@ -1,7 +1,7 @@
-# Segward's injector
+# WinSimpleInjector
 
 ### Installing steps:
-* Git clone this repository `git clone https://github.com/Segward/SimpleInjector.git `
+* Git clone this repository `git clone https://github.com/Segward/WinSimpleInjector.git `
 * Run the setup batch file ` .\setup `
 
 ### Usage:
@@ -9,8 +9,5 @@
 * For 32-bit targets: ` injector86 <process name> <dll path> `
 * Your dll architecture must match the targets architecture
 
-### Terminal codes used in Windows PowerShell:
-```(shell)
-git clone https://github.com/Segward/SimpleInjector.git
-.\setup
-```
+### Compiling
+* I recommend using GCC for 32-bit and 64-bit processes. You can find my version of it WinGCC at `https://github.com/Segward/WinGCC`
